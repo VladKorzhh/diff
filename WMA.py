@@ -1,3 +1,6 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
 def weighted_moving_average(data, weights):
     """
     Вычисление взвешенного скользящего среднего (WMA).
@@ -30,10 +33,31 @@ def weighted_moving_average(data, weights):
     
     return wma
 
+# Загрузка данных из Excel
+file_path = "your_file.xlsx"  # Путь
+column_name = "data"         # Столбец
 
-# Пример использования
-data = [10, 20, 30, 40, 50, 60]
-weights = [0.1, 0.3, 0.6]  # Более свежие значения имеют больший вес
+# Считываем данные
+df = pd.read_excel(file_path)
+data = df[column_name].dropna().tolist()  # Преобразуем данные столбца в список
 
-result = weighted_moving_average(data, weights)
-print("WMA:", result)
+# Весовые коэффициенты
+weights = [0.1, 0.3, 0.6]  # Настройка веса
+
+# Расчет WMA
+wma = weighted_moving_average(data, weights)
+
+# Подготовка данных для графика
+data_indices = range(len(data))
+wma_indices = range(len(weights) - 1, len(data))  # Индексы для WMA (начиная с конца первого окна)
+
+# Построение графика
+plt.figure(figsize=(10, 6))
+plt.plot(data_indices, data, label="Данные", marker="o")
+plt.plot(wma_indices, wma, label="Скользящее среднее (WMA)", color="red", linestyle="--")
+plt.title("Данные и взвешенное скользящее среднее")
+plt.xlabel("Индекс")
+plt.ylabel("Значение")
+plt.legend()
+plt.grid()
+plt.show()
