@@ -15,14 +15,12 @@ def exponential_moving_average(data, alpha):
     if not data:
         raise ValueError("Данные не должны быть пустыми.")
     
-    # Вычисление весов для всех данных
-    weights = np.array([(1 - alpha) ** i for i in range(len(data))])
-    weights = weights[::-1]  # Инвертируем веса (самый свежий элемент с наибольшим весом)
-    weighted_sum = np.cumsum(weights * data[::-1])[::-1]  # Вычисляем взвешенную сумму справа налево
-    normalization_factors = np.cumsum(weights[::-1])[::-1]  # Нормализационные коэффициенты
+    ema = [data[0]]  # Начальное значение EMA равно первому значению данных
     
-    # EMA для всех точек
-    ema = weighted_sum / normalization_factors
+    # Вычисление EMA для всех оставшихся точек
+    for i in range(1, len(data)):
+        ema.append(alpha * data[i] + (1 - alpha) * ema[i - 1])
+    
     return ema
 
 # Загрузка данных из Excel
