@@ -1,0 +1,84 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Параметры моделирования
+N = 3  # Длина окна скользящего среднего
+L = 10000  # Количество повторений эксперимента
+h = 2.326  # Порог обнаружения разладки
+mX_normal = 0  # Среднее значение в нормальном режиме
+mX_fault = 2  # Среднее значение при разладке
+sigma_X = 1  # Стандартное отклонение
+T_lag_target = 100  # Целевое среднее время между ложными тревогами
+
+def simulate_ma_algorithm(N, h, L, mX_normal, mX_fault, sigma_X):
+    delay_times = []
+    false_alarm_count = 0
+
+    for _ in range(L):
+        # Генерация начального стека (нормальный режим)
+        stack = np.random.normal(mX_normal, sigma_X, N)
+        g = np.mean(stack)
+
+        # Исключение ложной тревоги в начальной фазе
+        while g >= h:
+            stack = np.random.normal(mX_normal, sigma_X, N)
+            g = np.mean(stack)
+
+        # Основная фаза моделирования
+        time_step = 0
+        while True:
+            time_step += 1
+
+            # Генерация нового значения
+            x_new = np.random.normal(mX_normal, sigma_X) if np.random.rand() < 0.5 else np.random.normal(mX_fault, sigma_X)
+            
+            # Обновление стека и вычисление решающей функции
+            stack = np.roll(stack, -1)
+            stack[-1] = x_new
+            g = np.mean(stack)
+
+            # Проверка на разладку
+            if g >= h:
+                if x_new < mX_fault:
+                    false_alarm_count += 1
+                else:
+                    delay_times.append(time_step)
+                break
+
+    # Результаты моделирования
+    false_alarm_rate =  L/false_alarm_count 
+    average_delay = np.mean(delay_times) if delay_times else None
+    return false_alarm_rate, average_delay
+
+# Запуск моделирования
+false_alarm_rate, average_delay = simulate_ma_algorithm(N, h, L, mX_normal, mX_fault, sigma_X)
+
+# Вывод результатов
+print(f"Среднее время запаздывания обнаружения разладки: {average_delay}")
+print(f"Частота ложных тревог: {false_alarm_rate}")
+
+# Визуализация примера временного ряда и срабатывания алгоритма
+def visualize_example():
+    time_series = np.concatenate([
+        np.random.normal(mX_normal, sigma_X, 50),  # Нормальная фаза
+        np.random.normal(mX_fault, sigma_X, 50)  # Фаза разладки
+    ])
+    
+    g_values = []
+    stack = np.random.normal(mX_normal, sigma_X, N)
+    for x in time_series:
+        stack = np.roll(stack, -1)
+        stack[-1] = x
+        g_values.append(np.mean(stack))
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(time_series, label="Временной ряд")
+    plt.plot(g_values, label="Решающая функция g_i", color="orange")
+    plt.axhline(h, color="red", linestyle="--", label="Порог h")
+    plt.title("MA-алгоритм обнаружения разладки")
+    plt.xlabel("Время")
+    plt.ylabel("Значение")
+    plt.legend()
+    plt.show()
+
+visualize_example()
