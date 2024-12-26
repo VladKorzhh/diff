@@ -1,0 +1,83 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Параметры моделирования
+L = 10000  # Количество повторений эксперимента
+h = 5  # Порог обнаружения разладки
+mX_normal = 0  # Среднее значение в нормальном режиме
+mX_fault = 2  # Среднее значение при разладке
+sigma_X = 1  # Стандартное отклонение
+
+# Функция для моделирования CUSUM-алгоритма
+def simulate_cusum_algorithm(h, L, mX_normal, mX_fault, sigma_X):
+    delay_times = []
+    false_alarm_count = 0
+
+    for _ in range(L):
+        S = 0  # Инициализация статистики CUSUM
+        time_step = 0
+        while True:
+            time_step += 1
+
+            # Генерация нового значения
+            x_new = np.random.normal(mX_normal, sigma_X) if np.random.rand() < 0.5 else np.random.normal(mX_fault, sigma_X)
+
+            # Обновление статистики CUSUM
+            k = (mX_normal + mX_fault) / 2
+            S = max(0, S + (x_new - k) / sigma_X)
+
+            # Проверка на разладку
+            if S >= h:
+                if x_new < mX_fault:
+                    false_alarm_count += 1
+                else:
+                    delay_times.append(time_step)
+                break
+
+    # Результаты моделирования
+    false_alarm_rate = false_alarm_count / L
+    average_delay = np.mean(delay_times) if delay_times else None
+    return false_alarm_rate, average_delay
+
+# Исследование времени запаздывания и ложных тревог для CUSUM
+def analyze_cusum(delta_values, h_values, L, sigma_X):
+    results = []
+
+    for delta in delta_values:
+        for h in h_values:
+            mX_normal = 0
+            mX_fault = delta * sigma_X
+
+            false_alarm_rate, average_delay = simulate_cusum_algorithm(h, L, mX_normal, mX_fault, sigma_X)
+
+            results.append({
+                'delta': delta,
+                'h': h,
+                'false_alarm_rate': false_alarm_rate,
+                'average_delay': average_delay
+            })
+
+    return results
+
+# Визуализация результатов исследования CUSUM
+def visualize_cusum_results(results):
+    for h in set(r['h'] for r in results):
+        deltas = [r['delta'] for r in results if r['h'] == h]
+        delays = [r['average_delay'] for r in results if r['h'] == h]
+
+        plt.plot(deltas, delays, label=f'Порог h = {h}')
+
+    plt.title('CUSUM: Зависимость времени запаздывания от величины разладки')
+    plt.xlabel('Величина разладки (delta)')
+    plt.ylabel('Среднее время запаздывания')
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+# Параметры исследования
+delta_values = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]  # Величины разладки
+h_values = [3, 5, 7]  # Пороговые значения
+
+# Запуск исследования
+results = analyze_cusum(delta_values, h_values, L, sigma_X)
+visualize_cusum_results(results)
